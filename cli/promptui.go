@@ -1,6 +1,7 @@
-package shared
+package main
 
 import (
+	"github.com/duyleekun/gitflow-go/shared"
 	"github.com/manifoldco/promptui"
 	"github.com/manifoldco/promptui/list"
 )
@@ -22,7 +23,7 @@ func PromptString(promptMessage string) string {
 	result, err := prompt.Run()
 
 	if err != nil {
-		PrintVerbose("Prompt failed %v\n", err)
+		shared.PrintVerbose("Prompt failed %v\n", err)
 		return ""
 	}
 
@@ -46,7 +47,7 @@ func PromptSelect(label string, length int, searcher list.Searcher, nameMapper f
 	selectedIndex, _, err := prompt.Run()
 
 	if err != nil {
-		PrintVerbose("Prompt failed %v\n", err)
+		shared.PrintVerbose("Prompt failed %v\n", err)
 		return -1
 	}
 

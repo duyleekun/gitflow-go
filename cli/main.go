@@ -35,7 +35,7 @@ func main() {
 	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.MaintainerPermissions)
 
 	// Setup webhook
-	setupWebhook(git, chosenProject, *hookTokenFlag, shared.PromptString("HOOK URL"))
+	setupWebhook(git, chosenProject, *hookTokenFlag, PromptString("HOOK URL"))
 }
 
 func createEnvBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
@@ -125,7 +125,7 @@ func chooseProject(git *gitlab.Client) *gitlab.Project {
 	})
 	shared.HandleError(err, "ListProjects")
 
-	selectedProjectIndex := shared.PromptSelect("Select Project", len(projects), func(input string, index int) bool {
+	selectedProjectIndex := PromptSelect("Select Project", len(projects), func(input string, index int) bool {
 		return strings.Index(projects[index].NameWithNamespace, input) >= 0
 	}, func(i int) string {
 		return projects[i].PathWithNamespace
@@ -190,9 +190,9 @@ func protectBranch(git *gitlab.Client, project *gitlab.Project, branchNameToProt
 }
 
 func promptRef(branchName string) string {
-	return shared.PromptString(fmt.Sprintf("Ref for %s", branchName))
+	return PromptString(fmt.Sprintf("Ref for %s", branchName))
 }
 
 func promptBranch(reason string) string {
-	return shared.PromptString(fmt.Sprintf("Create branch for %s", reason))
+	return PromptString(fmt.Sprintf("Create branch for %s", reason))
 }
