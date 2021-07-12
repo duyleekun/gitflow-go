@@ -12,60 +12,11 @@ import (
 )
 
 import "flag"
-var nFlag = flag.String("token", "", "gitlab token")
+
+var nFlag = flag.String("api-token", "", "gitlab token")
+var hookTokenFlag = flag.String("hook-token", "", "Webhook secret token")
 
 var refExp = regexp.MustCompile(`(?:refs/heads/)?(([\w-]+)(?:/([\w-]+))?)`)
-
-func setupWebhook(git *gitlab.Client, hookSecret string) {
-
-	v := gitlab.MaintainerPermissions
-	orderBy := "last_activity_at"
-	listProjectsSort := "desc"
-	search := "gitflow-playground"
-	archived := false
-	projects, _, err := git.Projects.ListProjects(&gitlab.ListProjectsOptions{
-		Archived:       &archived,
-		MinAccessLevel: &v,
-		OrderBy:        &orderBy,
-		Search:         &search,
-		Sort:           &listProjectsSort,
-		ListOptions: gitlab.ListOptions{
-			Page:    0,
-			PerPage: 100,
-		},
-	})
-	chosenProject := projects[0]
-	projectHooks, _, err := git.Projects.ListProjectHooks(chosenProject.ID, &gitlab.ListProjectHooksOptions{
-		Page:    0,
-		PerPage: 100,
-	})
-	for _, hook := range projectHooks {
-		_, err := git.Projects.DeleteProjectHook(chosenProject.ID, hook.ID)
-		shared.HandleError(err, "DeleteProjectHook")
-	}
-	hookURL := "https://2085e497cb94.ngrok.io/webhooks"
-	trueP := true
-	falseP := false
-	_, _, err = git.Projects.AddProjectHook(chosenProject.ID, &gitlab.AddProjectHookOptions{
-		URL:                    &hookURL,
-		ConfidentialNoteEvents: &falseP,
-		PushEvents:             &trueP,
-		//PushEventsBranchFilter:   nil,
-		IssuesEvents:             &falseP,
-		ConfidentialIssuesEvents: &falseP,
-		MergeRequestsEvents:      &trueP,
-		TagPushEvents:            &trueP,
-		NoteEvents:               &falseP,
-		JobEvents:                &trueP,
-		PipelineEvents:           &trueP,
-		WikiPageEvents:           &falseP,
-		DeploymentEvents:         &trueP,
-		ReleasesEvents:           &falseP,
-		EnableSSLVerification:    &trueP,
-		Token:                    &hookSecret,
-	})
-	shared.HandleError(err, "AddProjectHook %s", hookURL)
-}
 
 func main() {
 	flag.Parse()
@@ -74,10 +25,7 @@ func main() {
 	git, err := gitlab.NewClient(*nFlag)
 	shared.HandleError(err, "NewClient")
 
-	hookSecret := "HOOKSCRET"
-
-	setupWebhook(git, hookSecret)
-	hook, _ := gitlabhook.New(gitlabhook.Options.Secret(hookSecret))
+	hook, _ := gitlabhook.New(gitlabhook.Options.Secret(*hookTokenFlag))
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, r *http.Request) {
 		payload, err := hook.Parse(r, gitlabhook.PushEvents, gitlabhook.MergeRequestEvents)
