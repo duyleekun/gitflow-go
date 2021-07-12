@@ -5,7 +5,6 @@ import (
 	"github.com/duyleekun/gitflow-go/shared"
 	gitlabhook "github.com/go-playground/webhooks/v6/gitlab"
 	"github.com/xanzy/go-gitlab"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -20,7 +19,6 @@ var refExp = regexp.MustCompile(`(?:refs/heads/)?(([\w-]+)(?:/([\w-]+))?)`)
 
 func main() {
 	flag.Parse()
-	log.SetFlags(log.Lshortfile)
 
 	git, err := gitlab.NewClient(*nFlag)
 	shared.HandleError(err, "NewClient")

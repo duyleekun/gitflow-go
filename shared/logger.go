@@ -7,6 +7,7 @@ import (
 )
 
 func HandleError(err error, format string, args ...interface{}) {
+	log.SetFlags(log.Lshortfile)
 	if err != nil {
 		log.Output(2, fmt.Sprintf("%s | error: %v", fmt.Sprintf(format, args...), err))
 		os.Exit(1)
@@ -15,5 +16,6 @@ func HandleError(err error, format string, args ...interface{}) {
 }
 
 func PrintVerbose(format string, args ...interface{}) {
+	log.SetFlags(log.Lshortfile)
 	log.Output(2, fmt.Sprintf(format, args...))
 }

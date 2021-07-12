@@ -14,7 +14,6 @@ var nFlag = flag.String("api-token", "", "gitlab token")
 var hookTokenFlag = flag.String("hook-token", "", "Webhook secret token")
 
 func main() {
-	log.SetFlags(log.Lshortfile)
 	flag.Parse()
 
 	git, err := gitlab.NewClient(*nFlag)
