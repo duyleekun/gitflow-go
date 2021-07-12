@@ -90,8 +90,8 @@ func main() {
 		shared.HandleError(err, "DeleteBranch %s", oldDefaultBranch)
 	}
 	removeSourceBranchAfterMerge := true
-	onlyAllowMergeIfPipelineSucceeds := true
-	onlyAllowMergeIfAllDiscussionsAreResolved := false
+	onlyAllowMergeIfPipelineSucceeds := false
+	onlyAllowMergeIfAllDiscussionsAreResolved := true
 	mergeMethod := gitlab.FastForwardMerge
 	_, _, err = git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
 		DefaultBranch:                             &defaultBranchName,
