@@ -2,6 +2,22 @@
 
 Automated repetitive setup actions and git actions
 
+<!--ts-->
+   * [gitflow-go](#gitflow-go)
+      * [CLI for Setup](#cli-for-setup)
+         * [Maintainer usage](#maintainer-usage)
+      * [Webhook for Automation](#webhook-for-automation)
+         * [Developer Usage](#developer-usage)
+         * [Webhook supported events](#webhook-supported-events)
+            * [On feature/&lt;feature_name&gt; or hotfix/&lt;fix_name&gt; pushed](#on-featurefeature_name-or-hotfixfix_name-pushed)
+            * [On feature/&lt;feature_name&gt; merged to main](#on-featurefeature_name-merged-to-main)
+            * [On hotfix/&lt;fix_name&gt; merged to main](#on-hotfixfix_name-merged-to-main)
+            * [On merged to env/&lt;env_name&gt;](#on-merged-to-envenv_name)
+
+<!-- Added by: root, at: Mon Jul 12 05:33:03 UTC 2021 -->
+
+<!--te-->
+
 ## CLI for Setup
 
 Developer can skip this section, this CLI is just for setup auto Gitflow for new project
@@ -125,3 +141,11 @@ Will prompt to setup the squash setting vie GUI. Gitlab API doesn't allow settin
 #### On merged to `env/<env_name>`
 
 - **[RFC]****[TODO]** Send notification with commits list
+
+## Contributions
+
+### Generate TOC
+
+```shell
+docker run -it -v $PWD:/data --rm --name markdown-toc-generator evkalinin/gh-md-toc:0.7.0 --insert /data/README.md
+```
