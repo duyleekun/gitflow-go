@@ -1,0 +1,6 @@
+module github.com/duyleekun/gitflow-go/shared
+
+go 1.16
+
+require (
+)
