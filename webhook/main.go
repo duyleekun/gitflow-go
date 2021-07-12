@@ -96,9 +96,8 @@ func main() {
 						println("sourceBranchType hotfix")
 						//	+ hotfix/ merged then
 						//- auto create Cherry branch cherry/feature/<feature_name>/env/<env_name> from env/<env_name> with commits from feature/<feature_name>
-						for _, envBranch := range envBranches {
-							cherryBranch := fmt.Sprintf("flowcherry/%s/%s", sourceBranchName, envBranch.Name)
-							createBranch(git, int(mergeRequestEventPayload.Project.ID), cherryBranch, envBranch.Name)
+						go func() {
+							//TODO Maybe choose the squashed one
 							commits, _, _ := git.MergeRequests.GetMergeRequestCommits(
 								int(mergeRequestEventPayload.Project.ID),
 								int(mergeRequestEventPayload.ObjectAttributes.IID),
@@ -106,17 +105,30 @@ func main() {
 									Page:    0,
 									PerPage: 100,
 								})
-							for i, _ := range commits {
-								//shared.PrintVerbose("mergeRequestEventPayload %+v", commits[len(commits)-1-i])
-								_, _, err := git.Commits.CherryPickCommit(int(mergeRequestEventPayload.Project.ID), commits[len(commits)-1-i].ID, &gitlab.CherryPickCommitOptions{
-									Branch: &cherryBranch,
-								})
-								shared.HandleError(err, "CherryPickCommit")
+							for _, envBranch := range envBranches {
+								envBranch := envBranch
+								go func() {
+									//TODO: ONLY 100 COMMIT
+									cherryBranch := fmt.Sprintf("flowcherry/%s/%s", sourceBranchName, envBranch.Name)
+									createBranch(git, int(mergeRequestEventPayload.Project.ID), cherryBranch, envBranch.Name)
+
+									title := fmt.Sprintf("Draft: Merge '%s' into %s", sourceBranchName, envBranch.Name)
+									assigneeId := int(mergeRequestEventPayload.ObjectAttributes.Assignee.ID)
+									createMR(git, int(mergeRequestEventPayload.Project.ID), title, cherryBranch, envBranch.Name, assigneeId, true)
+
+									for i, _ := range commits {
+										_, _, err := git.Commits.CherryPickCommit(int(mergeRequestEventPayload.Project.ID), commits[len(commits)-1-i].ID, &gitlab.CherryPickCommitOptions{
+											Branch: &cherryBranch,
+										})
+										if err != nil {
+											shared.PrintVerbose("CherryPickCommit %v", err)
+											break
+											//TODO: Post comment on PR when cherry failed
+										}
+									}
+								}()
 							}
-							title := fmt.Sprintf("Draft: Merge '%s' into %s", sourceBranchName, envBranch.Name)
-							assigneeId := int(mergeRequestEventPayload.ObjectAttributes.Assignee.ID)
-							createMR(git, int(mergeRequestEventPayload.Project.ID), title, cherryBranch, envBranch.Name, assigneeId, true)
-						}
+						}()
 					case "feature":
 						println("sourceBranchType feature")
 						//+ feature/ merged then
