@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/duyleekun/gitflow-go/shared"
-	"github.com/manifoldco/promptui"
 	"github.com/xanzy/go-gitlab"
-	"log"
 	"strings"
 )
 import "flag"
@@ -17,10 +15,100 @@ func main() {
 	flag.Parse()
 
 	git, err := gitlab.NewClient(*nFlag)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
+	shared.HandleError(err, "NewClient")
 
+	chosenProject := chooseProject(git)
+	deleteAllProtectedBranches(git, chosenProject)
+
+	defaultBranchName := "main"
+	// Create `main` branch
+	createMainBranch(git, chosenProject, defaultBranchName)
+
+	// Update project setting
+	updateProjectSetting(git, chosenProject, defaultBranchName)
+
+	// Create ENV branch
+	createEnvBranches(git, chosenProject)
+
+	// Protect branches
+	protectBranch(git, chosenProject, "main", gitlab.NoPermissions, gitlab.DeveloperPermissions)
+	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.MaintainerPermissions)
+
+	// Setup webhook
+	setupWebhook(git, chosenProject, *hookTokenFlag, shared.PromptString("HOOK URL"))
+}
+
+func createEnvBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
+	for branchToCreate := promptBranch("env"); len(branchToCreate) > 0; {
+		ref := promptRef(branchToCreate)
+		if len(branchToCreate) == 0 || len(ref) == 0 {
+			break
+		}
+		createBranch(git, chosenProject, branchToCreate, ref)
+	}
+}
+
+func createMainBranch(git *gitlab.Client, chosenProject *gitlab.Project, defaultBranchName string) {
+	if findBranch(git, chosenProject, defaultBranchName) {
+		oldDefaultBranch := promptRef(defaultBranchName)
+
+		// create new default branch
+		createBranch(git, chosenProject, defaultBranchName, oldDefaultBranch)
+
+		// update new default branch
+		_, _, err := git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
+			DefaultBranch: &defaultBranchName,
+		})
+		shared.HandleError(err, "EditProject DefaultBranch %s", defaultBranchName)
+
+		//delete old default branch
+		_, err = git.Branches.DeleteBranch(chosenProject.ID, oldDefaultBranch)
+		shared.HandleError(err, "DeleteBranch %s", oldDefaultBranch)
+	}
+}
+
+func updateProjectSetting(git *gitlab.Client, chosenProject *gitlab.Project, defaultBranchName string) {
+	removeSourceBranchAfterMerge := true
+	onlyAllowMergeIfPipelineSucceeds := false
+	onlyAllowMergeIfAllDiscussionsAreResolved := true
+	mergeMethod := gitlab.FastForwardMerge
+	_, _, err := git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
+		DefaultBranch:                             &defaultBranchName,
+		RemoveSourceBranchAfterMerge:              &removeSourceBranchAfterMerge,
+		MergeMethod:                               &mergeMethod,
+		OnlyAllowMergeIfPipelineSucceeds:          &onlyAllowMergeIfPipelineSucceeds,
+		OnlyAllowMergeIfAllDiscussionsAreResolved: &onlyAllowMergeIfAllDiscussionsAreResolved,
+	})
+
+	shared.HandleError(err, "EditProject\n\tDefaultBranch %s\n\tRemoveSourceBranchAfterMerge %t\n\tMergeMethod %s\n\tOnlyAllowMergeIfPipelineSucceeds %t\n\tOnlyAllowMergeIfAllDiscussionsAreResolved %t",
+		defaultBranchName, removeSourceBranchAfterMerge, mergeMethod, onlyAllowMergeIfPipelineSucceeds, onlyAllowMergeIfAllDiscussionsAreResolved)
+	shared.PrintVerbose("Manually set 'Squash commits when merging' to 'Require' here  %s/edit", chosenProject.WebURL)
+	_, err = git.Branches.DeleteMergedBranches(chosenProject.ID)
+	shared.HandleError(err, "DeleteMergedBranches")
+}
+
+func findBranch(git *gitlab.Client, chosenProject *gitlab.Project, branchName string) bool {
+	branches, _, err := git.Branches.ListBranches(chosenProject.ID, &gitlab.ListBranchesOptions{Search: &branchName})
+	shared.HandleError(err, "ListBranches")
+
+	mainFound := false
+	for _, branch := range branches {
+		if branch.Name == branchName {
+			mainFound = true
+		}
+	}
+	return mainFound
+}
+
+func deleteAllProtectedBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
+	listProtectedBranches, _, _ := git.ProtectedBranches.ListProtectedBranches(chosenProject.ID, &gitlab.ListProtectedBranchesOptions{PerPage: 100})
+	for _, branch := range listProtectedBranches {
+		_, err := git.ProtectedBranches.UnprotectRepositoryBranches(chosenProject.ID, branch.Name)
+		shared.HandleError(err, "UnprotectRepositoryBranches %s", branch.Name)
+	}
+}
+
+func chooseProject(git *gitlab.Client) *gitlab.Project {
 	v := gitlab.MaintainerPermissions
 	orderBy := "last_activity_at"
 	sort := "desc"
@@ -35,90 +123,17 @@ func main() {
 			PerPage: 100,
 		},
 	})
-	var projectNames []string
-	for _, project := range projects {
-		projectNames = append(projectNames, project.NameWithNamespace)
-	}
+	shared.HandleError(err, "ListProjects")
 
-	prompt1 := promptui.Select{
-		Label: "Select Project",
-		Items: projectNames,
-		Searcher: func(input string, index int) bool {
-			return strings.Index(projects[index].NameWithNamespace, input) >= 0
-		},
-		StartInSearchMode: true,
-	}
-
-	selectedProjectIndex, _, err := prompt1.Run()
-
-	if err != nil {
-		shared.PrintVerbose("Prompt failed %v\n", err)
-		return
-	}
+	selectedProjectIndex := shared.PromptSelect("Select Project", len(projects), func(input string, index int) bool {
+		return strings.Index(projects[index].NameWithNamespace, input) >= 0
+	}, func(i int) string {
+		return projects[i].PathWithNamespace
+	})
 
 	chosenProject := projects[selectedProjectIndex]
 	shared.PrintVerbose("You chose %q\n", chosenProject.PathWithNamespace)
-	listProtectedBranches, _, _ := git.ProtectedBranches.ListProtectedBranches(chosenProject.ID, &gitlab.ListProtectedBranchesOptions{PerPage: 100})
-	for _, branch := range listProtectedBranches {
-		_, err := git.ProtectedBranches.UnprotectRepositoryBranches(chosenProject.ID, branch.Name)
-		shared.HandleError(err, "UnprotectRepositoryBranches %s", branch.Name)
-	}
-
-	defaultBranchName := "main"
-
-	branches, _, err := git.Branches.ListBranches(chosenProject.ID, &gitlab.ListBranchesOptions{Search: &defaultBranchName})
-	shared.HandleError(err, "ListBranches")
-
-	mainFound := false
-	for _, branch := range branches {
-		if branch.Name == defaultBranchName {
-			mainFound = true
-		}
-	}
-
-	if !mainFound {
-		oldDefaultBranch := promptRef(defaultBranchName)
-
-		createBranch(git, chosenProject, defaultBranchName, oldDefaultBranch)
-
-		_, _, err = git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
-			DefaultBranch: &defaultBranchName,
-		})
-		shared.HandleError(err, "EditProject DefaultBranch %s", defaultBranchName)
-		_, err = git.Branches.DeleteBranch(chosenProject.ID, oldDefaultBranch)
-		shared.HandleError(err, "DeleteBranch %s", oldDefaultBranch)
-	}
-	removeSourceBranchAfterMerge := true
-	onlyAllowMergeIfPipelineSucceeds := false
-	onlyAllowMergeIfAllDiscussionsAreResolved := true
-	mergeMethod := gitlab.FastForwardMerge
-	_, _, err = git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
-		DefaultBranch:                             &defaultBranchName,
-		RemoveSourceBranchAfterMerge:              &removeSourceBranchAfterMerge,
-		MergeMethod:                               &mergeMethod,
-		OnlyAllowMergeIfPipelineSucceeds:          &onlyAllowMergeIfPipelineSucceeds,
-		OnlyAllowMergeIfAllDiscussionsAreResolved: &onlyAllowMergeIfAllDiscussionsAreResolved,
-	})
-
-	shared.HandleError(err, "EditProject\n\tDefaultBranch %s\n\tRemoveSourceBranchAfterMerge %t\n\tMergeMethod %s\n\tOnlyAllowMergeIfPipelineSucceeds %t\n\tOnlyAllowMergeIfAllDiscussionsAreResolved %t",
-		defaultBranchName, removeSourceBranchAfterMerge, mergeMethod, onlyAllowMergeIfPipelineSucceeds, onlyAllowMergeIfAllDiscussionsAreResolved)
-	shared.PrintVerbose("Manually set 'Squash commits when merging' to 'Require' here  %s/edit", chosenProject.WebURL)
-	_, err = git.Branches.DeleteMergedBranches(chosenProject.ID)
-	shared.HandleError(err, "DeleteMergedBranches")
-
-	for true {
-		branchToCreate := promptBranch("env")
-		ref := promptRef(branchToCreate)
-		if len(branchToCreate) == 0 || len(ref) == 0 {
-			break
-		}
-		createBranch(git, chosenProject, branchToCreate, ref)
-	}
-
-	protectBranch(git, chosenProject, "main", gitlab.NoPermissions, gitlab.DeveloperPermissions)
-	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.MaintainerPermissions)
-
-	setupWebhook(git, chosenProject, *hookTokenFlag, prompt("HOOK URL"))
+	return chosenProject
 }
 
 func setupWebhook(git *gitlab.Client, chosenProject *gitlab.Project, hookToken string, hookURL string) {
@@ -175,33 +190,9 @@ func protectBranch(git *gitlab.Client, project *gitlab.Project, branchNameToProt
 }
 
 func promptRef(branchName string) string {
-	return prompt(fmt.Sprintf("Ref for %s", branchName))
+	return shared.PromptString(fmt.Sprintf("Ref for %s", branchName))
 }
 
 func promptBranch(reason string) string {
-	return prompt(fmt.Sprintf("Create branch for %s", reason))
-}
-
-func prompt(promptMessage string) string {
-	//validate := func(input string) error {
-	//	_, err := strconv.ParseFloat(input, 64)
-	//	if err != nil {
-	//		return errors.New("Invalid number")
-	//	}
-	//	return nil
-	//}
-	//
-	prompt := promptui.Prompt{
-		Label: promptMessage,
-		//Validate: validate,
-	}
-
-	result, err := prompt.Run()
-
-	if err != nil {
-		shared.PrintVerbose("Prompt failed %v\n", err)
-		return ""
-	}
-
-	return result
+	return shared.PromptString(fmt.Sprintf("Create branch for %s", reason))
 }
