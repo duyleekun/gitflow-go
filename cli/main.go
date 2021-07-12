@@ -91,7 +91,7 @@ func main() {
 	}
 	removeSourceBranchAfterMerge := true
 	onlyAllowMergeIfPipelineSucceeds := true
-	onlyAllowMergeIfAllDiscussionsAreResolved := true
+	onlyAllowMergeIfAllDiscussionsAreResolved := false
 	mergeMethod := gitlab.FastForwardMerge
 	_, _, err = git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
 		DefaultBranch:                             &defaultBranchName,
@@ -119,28 +119,10 @@ func main() {
 	protectBranch(git, chosenProject, "main", gitlab.NoPermissions, gitlab.DeveloperPermissions)
 	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.MaintainerPermissions)
 
-	setupWebhook(git, *hookTokenFlag, prompt("HOOK URL"))
+	setupWebhook(git, chosenProject, *hookTokenFlag, prompt("HOOK URL"))
 }
 
-func setupWebhook(git *gitlab.Client, hookToken string, hookURL string) {
-
-	v := gitlab.MaintainerPermissions
-	orderBy := "last_activity_at"
-	listProjectsSort := "desc"
-	search := "gitflow-playground"
-	archived := false
-	projects, _, err := git.Projects.ListProjects(&gitlab.ListProjectsOptions{
-		Archived:       &archived,
-		MinAccessLevel: &v,
-		OrderBy:        &orderBy,
-		Search:         &search,
-		Sort:           &listProjectsSort,
-		ListOptions: gitlab.ListOptions{
-			Page:    0,
-			PerPage: 100,
-		},
-	})
-	chosenProject := projects[0]
+func setupWebhook(git *gitlab.Client, chosenProject *gitlab.Project, hookToken string, hookURL string) {
 	projectHooks, _, err := git.Projects.ListProjectHooks(chosenProject.ID, &gitlab.ListProjectHooksOptions{
 		Page:    0,
 		PerPage: 100,
