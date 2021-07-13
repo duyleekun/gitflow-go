@@ -100,6 +100,14 @@ Will prompt to setup the squash setting vie GUI. Gitlab API doesn't allow settin
 - `RFC` means not finalize, need idea
 - `TODO` not implemented
 
+### Helm
+
+```shell
+kubectl create ns gitflow
+helm upgrade --install --namespace=gitflow devns ./helm --values values-override.yaml
+```
+
+
 #### On `feature/<feature_name>` or `hotfix/<fix_name>` pushed
 
 - Create `PR`
