@@ -15,6 +15,14 @@ func HandleError(err error, format string, args ...interface{}) {
 	log.Output(2, fmt.Sprintf("%s | success", fmt.Sprintf(format, args...)))
 }
 
+func HandleIgnoreError(err error, format string, args ...interface{}) {
+	log.SetFlags(log.Lshortfile)
+	if err != nil {
+		log.Output(2, fmt.Sprintf("%s | error: %v", fmt.Sprintf(format, args...), err))
+	}
+	log.Output(2, fmt.Sprintf("%s | success", fmt.Sprintf(format, args...)))
+}
+
 func PrintVerbose(format string, args ...interface{}) {
 	log.SetFlags(log.Lshortfile)
 	log.Output(2, fmt.Sprintf(format, args...))

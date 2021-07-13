@@ -44,16 +44,16 @@ func createEnvBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
 		if len(branchToCreate) == 0 || len(ref) == 0 {
 			break
 		}
-		createBranch(git, chosenProject, branchToCreate, ref)
+		shared.CreateBranch(git, chosenProject, branchToCreate, ref)
 	}
 }
 
 func createMainBranch(git *gitlab.Client, chosenProject *gitlab.Project, defaultBranchName string) {
-	if findBranch(git, chosenProject, defaultBranchName) {
+	if shared.FindBranch(git, chosenProject.ID, defaultBranchName) {
 		oldDefaultBranch := promptRef(defaultBranchName)
 
 		// create new default branch
-		createBranch(git, chosenProject, defaultBranchName, oldDefaultBranch)
+		shared.CreateBranch(git, chosenProject, defaultBranchName, oldDefaultBranch)
 
 		// update new default branch
 		_, _, err := git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{
@@ -85,19 +85,6 @@ func updateProjectSetting(git *gitlab.Client, chosenProject *gitlab.Project, def
 	shared.PrintVerbose("Manually set 'Squash commits when merging' to 'Require' here  %s/edit", chosenProject.WebURL)
 	_, err = git.Branches.DeleteMergedBranches(chosenProject.ID)
 	shared.HandleError(err, "DeleteMergedBranches")
-}
-
-func findBranch(git *gitlab.Client, chosenProject *gitlab.Project, branchName string) bool {
-	branches, _, err := git.Branches.ListBranches(chosenProject.ID, &gitlab.ListBranchesOptions{Search: &branchName})
-	shared.HandleError(err, "ListBranches")
-
-	mainFound := false
-	for _, branch := range branches {
-		if branch.Name == branchName {
-			mainFound = true
-		}
-	}
-	return mainFound
 }
 
 func deleteAllProtectedBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
@@ -166,14 +153,6 @@ func setupWebhook(git *gitlab.Client, chosenProject *gitlab.Project, hookToken s
 		Token:                    &hookToken,
 	})
 	shared.HandleError(err, "AddProjectHook %s", hookURL)
-}
-
-func createBranch(git *gitlab.Client, chosenProject *gitlab.Project, branch string, ref string) {
-	_, _, err := git.Branches.CreateBranch(chosenProject.ID, &gitlab.CreateBranchOptions{
-		Branch: &branch,
-		Ref:    &ref,
-	})
-	shared.HandleError(err, "createBranch %s %s", branch, ref)
 }
 
 func protectBranch(git *gitlab.Client, project *gitlab.Project, branchNameToProtect string, push gitlab.AccessLevelValue, merge gitlab.AccessLevelValue) {
