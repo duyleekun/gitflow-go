@@ -72,10 +72,8 @@ Will prompt to setup the squash setting vie GUI. Gitlab API doesn't allow settin
 - To merge `PR`
   + Go to `PR` on Gitlab
   + Press `rebase` to perform FastForward merge without creating merge commit
-    + If `rebase` failed when merge from `main` or `env/<env_name>` to `env/<env_name>`
-      + Delete `env/<env_name>`
-      + Use Gitlab GUI to create branch `env/<env_name>` from the source branch (this will force perform new deployment)
-      + Delete this PR
+    + If `rebase` failed when merge from `main` or `env/<envname>` to `env/<env_name>`
+      + Comment `!force_merge` 
     + If `rebase` failed on other source and target branches, something is wrong
   + Update `squash` message (for changelog)
   + Press `merge`
@@ -116,7 +114,7 @@ Will prompt to setup the squash setting vie GUI. Gitlab API doesn't allow settin
 ```
 
 #### On `feature/<feature_name>` merged to `main`
-- **[RFC]****[TODO]** auto create `PR` from `main` to all `env/<stage0_env_name>` branches
+- **[RFC]****[TODO]** auto create `PR` from `main` to ???
 
 
 #### On `hotfix/<fix_name>` merged to `main`
@@ -140,6 +138,10 @@ Will prompt to setup the squash setting vie GUI. Gitlab API doesn't allow settin
 
 #### On merged to `env/<env_name>`
 
+- Handle `!force_merge` comment
+  - Delete target branch
+  - Recreate target branch from source branch
+  - Close PR
 - **[RFC]****[TODO]** Send notification with commits list
 
 ## Contributions
