@@ -40,7 +40,7 @@ func main() {
 		case gitlabhook.CommentEventPayload:
 			commentEventPayload := payload.(gitlabhook.CommentEventPayload)
 			submatch := commandExp.FindStringSubmatch(commentEventPayload.ObjectAttributes.Description)
-			if len(submatch) > 0 {
+			if len(submatch) > 1 {
 				split, err := shlex.Split(submatch[1])
 				shared.HandleError(err, "shlex.Split %s", submatch)
 				chosenProjectId := int(commentEventPayload.ProjectID)
