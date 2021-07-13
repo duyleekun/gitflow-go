@@ -1,0 +1,37 @@
+name: Go
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [cli, webhook]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+    - name: Build
+      env:
+        MODULE: ${{ matrix.module }}
+      working-directory: ./${{ matrix.module }}
+      run: version=${GITHUB_REF:10} make release
+    - name: GH Release
+      # You may pin to the exact commit or the version.
+      # uses: softprops/action-gh-release@b7e450da2a4b4cb4bfbae528f788167786cfcedf
+      uses: softprops/action-gh-release@v0.1.5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        # Gives the release a custom name. Defaults to tag name
+        name: ${{ github.event.release.tag_name }}
+        # Identify the release as a prerelease. Defaults to false
+        prerelease: false
+        # Newline-delimited list of path globs for asset files to upload
+        files: "./${{ matrix.module }}/bin/*"
