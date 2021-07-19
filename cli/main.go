@@ -36,7 +36,12 @@ func main() {
 
 	// Protect branches
 	protectBranch(git, chosenProject, "main", gitlab.NoPermissions, gitlab.DeveloperPermissions)
-	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.MaintainerPermissions)
+	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.DeveloperPermissions)
+	protectBranch(git, chosenProject, "develop", gitlab.NoPermissions, gitlab.NoPermissions)
+	protectBranch(git, chosenProject, "master", gitlab.NoPermissions, gitlab.NoPermissions)
+
+	_, err = git.Branches.DeleteMergedBranches(chosenProject.ID)
+	shared.HandleError(err, "DeleteMergedBranches")
 
 	// Setup webhook
 	if len(*hookTokenFlag) > 0 && len(*hookURLFlag) > 0 {
@@ -90,8 +95,6 @@ func updateProjectSetting(git *gitlab.Client, chosenProject *gitlab.Project, def
 	shared.HandleError(err, "EditProject\n\tDefaultBranch %s\n\tRemoveSourceBranchAfterMerge %t\n\tMergeMethod %s\n\tOnlyAllowMergeIfPipelineSucceeds %t\n\tOnlyAllowMergeIfAllDiscussionsAreResolved %t",
 		defaultBranchName, removeSourceBranchAfterMerge, mergeMethod, onlyAllowMergeIfPipelineSucceeds, onlyAllowMergeIfAllDiscussionsAreResolved)
 	shared.PrintVerbose("Manually set 'Squash commits when merging' to 'Require' here  %s/edit", chosenProject.WebURL)
-	_, err = git.Branches.DeleteMergedBranches(chosenProject.ID)
-	shared.HandleError(err, "DeleteMergedBranches")
 }
 
 func deleteAllProtectedBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
