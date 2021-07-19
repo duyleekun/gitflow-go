@@ -8,7 +8,6 @@ import (
 	"github.com/xanzy/go-gitlab"
 	"net/http"
 	"regexp"
-	"strconv"
 )
 
 import "flag"
@@ -74,41 +73,41 @@ func main() {
 					}()
 				}
 			}
-		case gitlabhook.PushEventPayload:
-			pushEventPayload := payload.(gitlabhook.PushEventPayload)
-
-			match := refExp.FindStringSubmatch(pushEventPayload.Ref)
-			branchName := match[1]
-			branchType := match[2]
-			//branchSubName := match[3]
-			targetBranch := "main"
-
-			if pushEventPayload.Before == "0000000000000000000000000000000000000000" {
-				switch branchType {
-				case "feature", "hotfix":
-					title := fmt.Sprintf("Draft: Merge '%s' into %s", branchName, targetBranch)
-					assigneeId := int(pushEventPayload.UserID)
-					shared.CreateMR(git, int(pushEventPayload.ProjectID), title, branchName, targetBranch, assigneeId, true)
-				}
-			} else if pushEventPayload.After == "0000000000000000000000000000000000000000" {
-				//BRANCH DELETED, delete MR too
-				state := "opened"
-				mergeRequests, _, err := git.MergeRequests.ListProjectMergeRequests(int(pushEventPayload.ProjectID), &gitlab.ListProjectMergeRequestsOptions{
-					ListOptions: gitlab.ListOptions{
-						Page:    0,
-						PerPage: 100,
-					},
-					State:        &state,
-					SourceBranch: &branchName,
-					TargetBranch: &targetBranch,
-				})
-				shared.HandleError(err, "ListProjectMergeRequests")
-				for _, request := range mergeRequests {
-					_, err := git.MergeRequests.DeleteMergeRequest(int(pushEventPayload.ProjectID), request.IID)
-					shared.PrintVerbose("%+v", request)
-					shared.HandleError(err, "DeleteMergeRequest", strconv.Itoa(request.IID))
-				}
-			}
+		//case gitlabhook.PushEventPayload:
+		//	pushEventPayload := payload.(gitlabhook.PushEventPayload)
+		//
+		//	match := refExp.FindStringSubmatch(pushEventPayload.Ref)
+		//	branchName := match[1]
+		//	branchType := match[2]
+		//	//branchSubName := match[3]
+		//	targetBranch := "main"
+		//
+		//	if pushEventPayload.Before == "0000000000000000000000000000000000000000" {
+		//		switch branchType {
+		//		case "feature", "hotfix":
+		//			title := fmt.Sprintf("Draft: Merge '%s' into %s", branchName, targetBranch)
+		//			assigneeId := int(pushEventPayload.UserID)
+		//			shared.CreateMR(git, int(pushEventPayload.ProjectID), title, branchName, targetBranch, assigneeId, true)
+		//		}
+		//	} else if pushEventPayload.After == "0000000000000000000000000000000000000000" {
+		//		//BRANCH DELETED, delete MR too
+		//		state := "opened"
+		//		mergeRequests, _, err := git.MergeRequests.ListProjectMergeRequests(int(pushEventPayload.ProjectID), &gitlab.ListProjectMergeRequestsOptions{
+		//			ListOptions: gitlab.ListOptions{
+		//				Page:    0,
+		//				PerPage: 100,
+		//			},
+		//			State:        &state,
+		//			SourceBranch: &branchName,
+		//			TargetBranch: &targetBranch,
+		//		})
+		//		shared.HandleError(err, "ListProjectMergeRequests")
+		//		for _, request := range mergeRequests {
+		//			_, err := git.MergeRequests.DeleteMergeRequest(int(pushEventPayload.ProjectID), request.IID)
+		//			shared.PrintVerbose("%+v", request)
+		//			shared.HandleError(err, "DeleteMergeRequest", strconv.Itoa(request.IID))
+		//		}
+		//	}
 		case gitlabhook.MergeRequestEventPayload:
 			mergeRequestEventPayload := payload.(gitlabhook.MergeRequestEventPayload)
 			if mergeRequestEventPayload.ObjectKind == "merge_request" && mergeRequestEventPayload.ObjectAttributes.Action == "merge" {

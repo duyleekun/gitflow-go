@@ -151,7 +151,7 @@ func setupWebhook(git *gitlab.Client, chosenProject *gitlab.Project, hookToken s
 	_, _, err = git.Projects.AddProjectHook(chosenProject.ID, &gitlab.AddProjectHookOptions{
 		URL:                    &hookURL,
 		ConfidentialNoteEvents: &falseP,
-		PushEvents:             &trueP,
+		PushEvents:             &falseP,
 		//PushEventsBranchFilter:   nil,
 		IssuesEvents:             &falseP,
 		ConfidentialIssuesEvents: &falseP,

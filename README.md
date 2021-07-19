@@ -108,7 +108,9 @@ helm upgrade --install --namespace=gitflow devns ./helm --values values-override
 ```
 
 
-#### On `feature/<feature_name>` or `hotfix/<fix_name>` pushed
+#### [REMOVED] On `feature/<feature_name>` or `hotfix/<fix_name>` pushed
+
+Removed due to inability to change squash commit author/committer
 
 - Create `PR`
 
