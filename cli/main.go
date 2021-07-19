@@ -10,6 +10,7 @@ import "flag"
 
 var nFlag = flag.String("api-token", "", "gitlab token")
 var hookTokenFlag = flag.String("hook-token", "", "Webhook secret token")
+var hookURLFlag = flag.String("hook-url", "", "Webhook secret token")
 
 func main() {
 	flag.Parse()
@@ -35,7 +36,10 @@ func main() {
 	protectBranch(git, chosenProject, "env/*", gitlab.NoPermissions, gitlab.MaintainerPermissions)
 
 	// Setup webhook
-	setupWebhook(git, chosenProject, *hookTokenFlag, PromptString("HOOK URL"))
+	if len(*hookTokenFlag) > 0 && len(*hookURLFlag) > 0 {
+		setupWebhook(git, chosenProject, *hookTokenFlag, *hookURLFlag)
+	}
+
 }
 
 func createEnvBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
