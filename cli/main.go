@@ -51,10 +51,14 @@ func main() {
 }
 
 func createEnvBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
-	for branchToCreate := promptBranch("env"); len(branchToCreate) > 0; {
-		ref := promptRef(branchToCreate)
-		if len(branchToCreate) == 0 || len(ref) == 0 {
+	for true {
+		branchToCreate := promptBranch("env")
+		if len(branchToCreate) == 0 {
 			break
+		}
+		ref := promptRef(branchToCreate)
+		if len(ref) == 0 {
+			continue
 		}
 		shared.CreateBranch(git, chosenProject, branchToCreate, ref)
 	}
