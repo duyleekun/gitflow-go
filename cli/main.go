@@ -30,6 +30,9 @@ func main() {
 
 	// Create ENV branch
 	createEnvBranches(git, chosenProject)
+	if shared.FindBranch(git, chosenProject.ID, "master") {
+		shared.DeleteBranch(git, chosenProject.ID, "master")
+	}
 
 	// Protect branches
 	protectBranch(git, chosenProject, "main", gitlab.NoPermissions, gitlab.DeveloperPermissions)
