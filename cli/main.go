@@ -60,7 +60,7 @@ func createEnvBranches(git *gitlab.Client, chosenProject *gitlab.Project) {
 		if len(ref) == 0 {
 			continue
 		}
-		shared.CreateBranch(git, chosenProject, branchToCreate, ref)
+		shared.CreateBranch(git, chosenProject.ID, branchToCreate, ref)
 	}
 }
 
@@ -69,7 +69,7 @@ func createMainBranch(git *gitlab.Client, chosenProject *gitlab.Project, default
 		oldDefaultBranch := promptRef(defaultBranchName)
 
 		// create new default branch
-		shared.CreateBranch(git, chosenProject, defaultBranchName, oldDefaultBranch)
+		shared.CreateBranch(git, chosenProject.ID, defaultBranchName, oldDefaultBranch)
 
 		// update new default branch
 		_, _, err := git.Projects.EditProject(chosenProject.ID, &gitlab.EditProjectOptions{

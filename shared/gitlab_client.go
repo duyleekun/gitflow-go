@@ -31,7 +31,7 @@ func CreateMR(git *gitlab.Client, projectID int, title string, sourceBranch stri
 	return mr
 }
 
-func CreateBranch(git *gitlab.Client, chosenProjectID interface{}, branch string, ref string) {
+func CreateBranch(git *gitlab.Client, chosenProjectID int, branch string, ref string) {
 	_, _, err := git.Branches.CreateBranch(chosenProjectID, &gitlab.CreateBranchOptions{
 		Branch: &branch,
 		Ref:    &ref,
