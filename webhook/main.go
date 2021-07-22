@@ -151,7 +151,7 @@ func main() {
 								shared.CreateBranch(git, int(mergeRequestEventPayload.Project.ID), cherryBranch, envBranch.Name)
 
 								title := fmt.Sprintf("Draft: Merge '%s' into %s", sourceBranchName, envBranch.Name)
-								assigneeId := int(mergeRequestEventPayload.ObjectAttributes.Assignee.ID)
+								assigneeId := int(mergeRequestEventPayload.ObjectAttributes.AuthorID)
 								newlyCreatedMR := shared.CreateMR(git, int(mergeRequestEventPayload.Project.ID), title, cherryBranch, envBranch.Name, assigneeId, true)
 								shared.ReplyMergeRequest(git, mergeRequestEventPayload, "MR !%d created", newlyCreatedMR.IID)
 
