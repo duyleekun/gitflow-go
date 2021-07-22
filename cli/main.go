@@ -157,7 +157,7 @@ func setupWebhook(git *gitlab.Client, chosenProject *gitlab.Project, hookToken s
 		ConfidentialIssuesEvents: &falseP,
 		MergeRequestsEvents:      &trueP,
 		TagPushEvents:            &trueP,
-		NoteEvents:               &falseP,
+		NoteEvents:               &trueP,
 		JobEvents:                &trueP,
 		PipelineEvents:           &trueP,
 		WikiPageEvents:           &falseP,
