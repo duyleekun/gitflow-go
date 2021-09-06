@@ -85,7 +85,7 @@ func main() {
 		//	if pushEventPayload.Before == "0000000000000000000000000000000000000000" {
 		//		switch branchType {
 		//		case "feature", "hotfix":
-		//			title := fmt.Sprintf("Draft: Merge '%s' into %s", branchName, targetBranch)
+		//			title := fmt.Sprintf("Merge '%s' into %s", branchName, targetBranch)
 		//			assigneeId := int(pushEventPayload.UserID)
 		//			shared.CreateMR(git, int(pushEventPayload.ProjectID), title, branchName, targetBranch, assigneeId, true)
 		//		}
@@ -150,7 +150,7 @@ func main() {
 								shared.ReplyMergeRequest(git, mergeRequestEventPayload, "Branch %s created", cherryBranch)
 								shared.CreateBranch(git, int(mergeRequestEventPayload.Project.ID), cherryBranch, envBranch.Name)
 
-								title := fmt.Sprintf("Draft: Merge '%s' into %s", sourceBranchName, envBranch.Name)
+								title := fmt.Sprintf("Merge '%s' into %s", sourceBranchName, envBranch.Name)
 								assigneeId := int(mergeRequestEventPayload.ObjectAttributes.AuthorID)
 								newlyCreatedMR := shared.CreateMR(git, int(mergeRequestEventPayload.Project.ID), title, cherryBranch, envBranch.Name, assigneeId, true)
 								shared.ReplyMergeRequest(git, mergeRequestEventPayload, "MR !%d created", newlyCreatedMR.IID)
@@ -159,6 +159,9 @@ func main() {
 									Branch: &cherryBranch,
 								})
 								shared.HandleIgnoreError(err, "CherryPickCommit %s %s", shaToCherryPick, cherryBranch)
+								if err != nil {
+									shared.ReplyMergeRequest(git, mergeRequestEventPayload, "CherryPickCommit %s into %s for MR !%d failed due to '%v'. May need to cherry pick locally", shaToCherryPick, cherryBranch, newlyCreatedMR.IID, err)
+								}
 								shared.ReplyMergeRequest(git, mergeRequestEventPayload, "Cherry picked from %s to %s", shaToCherryPick, cherryBranch)
 							}
 						}()
